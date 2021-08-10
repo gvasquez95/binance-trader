@@ -2,41 +2,40 @@ const binanceRest = require('./binance/rest.js')
 
 const BASE_ASSET = 'USDT'
 
-binanceRest
-  .account()
-  .then(data => {
-    let total = 0
-    const assets = new Map()
-    for (const balance of data.balances) {
-      if (balance.free > 0 || balance.locked > 0) {
-        assets.set(balance.asset, balance.free)
+async function getAssets () {
+  const data = await binanceRest.account()
+  const assets = new Map()
+  for (const balance of data.balances) {
+    if (balance.free > 0 || balance.locked > 0) {
+      assets.set(balance.asset, balance.free)
+    }
+  }
+  return assets
+}
+
+async function getTopAsset() {
+  const assets = await getAssets()
+  const prices = await binanceRest.tickerPrice({})
+  let total = 0; let topAsset; let topAmount
+  for (const [key, value] of assets) {
+    for (const asset of prices) {
+      if (asset.symbol === `${key}${BASE_ASSET}`) {
+        const local = value * asset.price
+        if (!topAsset || local > topAmount) {
+          topAsset = asset.symbol
+          topAmount = local
+        }
+        console.log(key, asset, local)
+        total += local
+        console.log('Total: ', total)
+        break
       }
     }
-    let topAsset, topAmount
-    for (const [key, value] of assets) {
-      binanceRest.tickerPrice({}).then(data => {
-        for (const asset of data) {
-          if (asset.symbol === `${key}${BASE_ASSET}`) {
-            const local = value * asset.price
-            if (!topAsset || local > topAmount) {
-              topAsset = asset.symbol
-              topAmount = local
-            }
-            console.log(key, asset, local)
-            total += local
-            console.log('Total: ', total)
-            break
-          }
-        }
-      }).catch(err => {
-        console.error(err)
-      })
-    }
-  })
-  .catch(err => {
-    console.error(err)
-  })
+  }
+  console.log('topAsset', topAsset, topAmount)
+  return topAsset
+}
 
-async function start () {
-
+exports.handler = async () => {
+  console.log('Top Asset: ',await getTopAsset())
 }
