@@ -1,4 +1,4 @@
-const config = require('../config.json')
+const config = require('./config.json')
 const api = require('binance')
 
 const binanceRest = new api.BinanceRest({

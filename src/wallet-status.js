@@ -1,4 +1,4 @@
-const binanceRest = require('./binanceRest.js')
+const binanceRest = require('./binance/rest.js')
 
 binanceRest
   .account()
