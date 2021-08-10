@@ -13,7 +13,7 @@ async function getAssets () {
   return assets
 }
 
-async function getTopAsset() {
+async function getTopAsset () {
   const assets = await getAssets()
   const prices = await binanceRest.tickerPrice({})
   let total = 0; let topAsset; let topAmount
@@ -37,5 +37,5 @@ async function getTopAsset() {
 }
 
 exports.handler = async () => {
-  console.log('Top Asset: ',await getTopAsset())
+  console.log('Top Asset: ', await getTopAsset())
 }
