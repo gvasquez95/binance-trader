@@ -1,0 +1,1 @@
+aws logs tail --follow --profile gvasquez "/aws/lambda/binance-getCandidates" --region us-east-1 --filter-pattern INFO

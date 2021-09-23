@@ -1,0 +1,1 @@
+aws logs tail --follow --profile gvasquez "/aws/lambda/binance-trader" --region us-east-1
