@@ -123,6 +123,12 @@ async function trade (currentSymbol, quantity, desiredSymbol) {
 async function sell (symbol, quantity) {
   console.log('Sell ', symbol, quantity)
 
+  // Check quantity is valid before proceeding
+  if (quantity <= 0) {
+    console.log('Warning: Skipping sell for', symbol, '- quantity is', quantity, '(must be greater than 0)')
+    return
+  }
+
   // Validate symbol exists before attempting to sell
   if (!await symbolExists(symbol)) {
     console.log(`Symbol ${symbol} does not exist in exchange, attempting fallback`)
