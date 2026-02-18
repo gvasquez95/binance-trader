@@ -1,35 +1,70 @@
 const config = require('./config.json')
-const api = require('binance')
+const Binance = require('binance-api-node').default
 
-const binanceRest = new api.BinanceRest({
-  key: config.key, // Get this from your account on binance.com
-  secret: config.secret, // Same for this
-  timeout: 15000, // Optional, defaults to 15000, is the request time out in milliseconds
-  recvWindow: 10000, // Optional, defaults to 5000, increase if you're getting timestamp errors
-  disableBeautification: false,
-  /*
-       * Optional, default is false. Binance's API returns objects with lots of one letter keys.  By
-       * default those keys will be replaced with more descriptive, longer ones.
-       */
-  handleDrift: false,
-  /*
-       * Optional, default is false.  If turned on, the library will attempt to handle any drift of
-       * your clock on it's own.  If a request fails due to drift, it'll attempt a fix by requesting
-       * binance's server time, calculating the difference with your own clock, and then reattempting
-       * the request.
-       */
-  baseUrl: 'https://api.binance.com/',
-  /*
-       * Optional, default is 'https://api.binance.com/'. Can be useful in case default url stops working.
-       * In february 2018, Binance had a major outage and when service started to be up again, only
-       * https://us.binance.com was working.
-       */
-  requestOptions: {}
-  /*
-       * Options as supported by the 'request' library
-       * For a list of available options, see:
-       * https://github.com/request/request
-       */
+const client = Binance({
+  apiKey: config.key,
+  apiSecret: config.secret,
+  httpBase: 'https://api.binance.com/',
+  timeout: 15000,
+  recvWindow: 10000
 })
+
+// Wrapper to maintain backwards compatibility with the old 'binance' package API
+const binanceRest = {
+  // Returns account info - same format as old API
+  async account () {
+    return client.accountInfo()
+  },
+
+  // Returns ticker price(s)
+  // Old API: tickerPrice(symbol) returns { symbol, price }
+  //          tickerPrice({}) or tickerPrice() returns [{ symbol, price }, ...]
+  //          tickerPrice({ symbol }) returns { symbol, price }
+  // New API: prices({ symbol }) returns { SYMBOL: 'price' }
+  async tickerPrice (symbolOrOptions) {
+    // Handle no argument or empty object - return all prices
+    if (symbolOrOptions === undefined || (typeof symbolOrOptions === 'object' && Object.keys(symbolOrOptions).length === 0)) {
+      const prices = await client.prices()
+      return Object.entries(prices).map(([symbol, price]) => ({ symbol, price }))
+    }
+
+    // Handle string argument - single symbol
+    if (typeof symbolOrOptions === 'string') {
+      const prices = await client.prices({ symbol: symbolOrOptions })
+      return { symbol: symbolOrOptions, price: prices[symbolOrOptions] }
+    }
+
+    // Handle object with symbol property - single symbol
+    if (typeof symbolOrOptions === 'object' && symbolOrOptions.symbol) {
+      const symbol = symbolOrOptions.symbol
+      const prices = await client.prices({ symbol })
+      return { symbol, price: prices[symbol] }
+    }
+
+    // Fallback - return all prices
+    const prices = await client.prices()
+    return Object.entries(prices).map(([symbol, price]) => ({ symbol, price }))
+  },
+
+  // Returns 24hr ticker stats - same format as old API
+  async ticker24hr () {
+    return client.dailyStats()
+  },
+
+  // Returns exchange info
+  async exchangeInfo () {
+    return client.exchangeInfo()
+  },
+
+  // Create a new order
+  async newOrder (options) {
+    return client.order(options)
+  },
+
+  // Test a new order (validation only, no actual order placed)
+  async testOrder (options) {
+    return client.orderTest(options)
+  }
+}
 
 module.exports = binanceRest
