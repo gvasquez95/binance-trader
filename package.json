@@ -12,6 +12,7 @@
     "aws-sdk": "^2.993.0",
     "aws-xray-sdk-core": "^3.3.3",
     "binance": "^1.4.0",
+    "lodash": "^4.17.23",
     "trendline": "^0.3.1"
   },
   "devDependencies": {
