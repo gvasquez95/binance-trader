@@ -9,7 +9,10 @@
   "author": "gvasquez",
   "license": "ISC",
   "dependencies": {
-    "aws-sdk": "^2.993.0",
+    "@aws-sdk/client-dynamodb": "^3.668.0",
+    "@aws-sdk/client-sqs": "^3.668.0",
+    "@aws-sdk/lib-dynamodb": "^3.668.0",
+    "@smithy/node-http-handler": "^3.2.5",
     "aws-xray-sdk-core": "^3.3.3",
     "binance": "^1.4.0",
     "trendline": "^0.3.1"

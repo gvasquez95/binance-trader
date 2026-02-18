@@ -2,24 +2,32 @@ const createTrend = require('trendline')
 const awsConf = require('./aws.json')
 const YOUR_ACCESS_KEY_ID = awsConf.key
 const YOUR_SECRET_ACCESS_KEY = awsConf.secret
-const AWS = require('aws-sdk')
-const http = require('https')
-const agent = new http.Agent({
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb')
+const { DynamoDBDocumentClient, QueryCommand } = require('@aws-sdk/lib-dynamodb')
+const { SQSClient, GetQueueUrlCommand, SendMessageCommand } = require('@aws-sdk/client-sqs')
+const { NodeHttpHandler } = require('@smithy/node-http-handler')
+const https = require('https')
+const agent = new https.Agent({
   keepAlive: true,
   // Infinity is read as 50 sockets
   maxSockets: Infinity
 })
 
-AWS.config.update({
+const clientConfig = {
   region: 'us-east-1',
-  httpOptions: {
-    agent
-  }
-})
+  credentials: {
+    accessKeyId: YOUR_ACCESS_KEY_ID,
+    secretAccessKey: YOUR_SECRET_ACCESS_KEY
+  },
+  requestHandler: new NodeHttpHandler({
+    httpsAgent: agent
+  })
+}
 
 const DYNAMODB_TABLE = 'binance-prices'
-const sqs = new AWS.SQS({ accessKeyId: YOUR_ACCESS_KEY_ID, secretAccessKey: YOUR_SECRET_ACCESS_KEY, apiVersion: '2012-11-05' })
-const documentClient = new AWS.DynamoDB.DocumentClient({ accessKeyId: YOUR_ACCESS_KEY_ID, secretAccessKey: YOUR_SECRET_ACCESS_KEY })
+const sqsClient = new SQSClient(clientConfig)
+const dynamoDBClient = new DynamoDBClient(clientConfig)
+const documentClient = DynamoDBDocumentClient.from(dynamoDBClient)
 const tickers = require('../tickers.json')
 
 const NUM_DECIMALS = 7
@@ -63,7 +71,7 @@ async function getPriceChange (symbol, since, breakpoint) {
       ':timestamp': since
     }
   }
-  const res = await documentClient.query(params).promise()
+  const res = await documentClient.send(new QueryCommand(params))
   const prev = []
   const recent = []
   const trendData = []
@@ -97,16 +105,17 @@ exports.handler = async (event) => {
   console.log(JSON.stringify(changes))
   if (changes) {
     try {
-      const QueueUrl = (await sqs.getQueueUrl({
+      const queueUrlResponse = await sqsClient.send(new GetQueueUrlCommand({
         QueueName: 'binance-trader.fifo' /* required */
-      }).promise()).QueueUrl
+      }))
+      const QueueUrl = queueUrlResponse.QueueUrl
       const params = {
         MessageBody: changes.maxChange > CHANGE_THRESHOLD || changes.slope > SLOPE_THRESHOLD ? changes.symbol : SAFE_SYMBOL,
         MessageDeduplicationId: changes.symbol, // Required for FIFO queues
         MessageGroupId: 'binance', // Required for FIFO queues
         QueueUrl
       }
-      await sqs.sendMessage(params).promise()
+      await sqsClient.send(new SendMessageCommand(params))
     } catch (err) { console.log('err: ', JSON.stringify(err)) }
   }
 }

@@ -3,23 +3,29 @@ const binanceRest = require('../binance/rest.js')
 const awsConf = require('aws.json')
 const YOUR_ACCESS_KEY_ID = awsConf.key
 const YOUR_SECRET_ACCESS_KEY = awsConf.secret
-const AWS = require('aws-sdk')
-const http = require('https')
-const agent = new http.Agent({
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb')
+const { DynamoDBDocumentClient, BatchWriteCommand } = require('@aws-sdk/lib-dynamodb')
+const { NodeHttpHandler } = require('@smithy/node-http-handler')
+const https = require('https')
+const agent = new https.Agent({
   keepAlive: true,
   // Infinity is read as 50 sockets
   maxSockets: Infinity
 })
 
-AWS.config.update({
+const dynamoDBClient = new DynamoDBClient({
   region: 'us-east-1',
-  httpOptions: {
-    agent
-  }
+  credentials: {
+    accessKeyId: YOUR_ACCESS_KEY_ID,
+    secretAccessKey: YOUR_SECRET_ACCESS_KEY
+  },
+  requestHandler: new NodeHttpHandler({
+    httpsAgent: agent
+  })
 })
 
 const DYNAMODB_TABLE = 'binance-prices'
-const documentClient = new AWS.DynamoDB.DocumentClient({ accessKeyId: YOUR_ACCESS_KEY_ID, secretAccessKey: YOUR_SECRET_ACCESS_KEY })
+const documentClient = DynamoDBDocumentClient.from(dynamoDBClient)
 console.log('cold start')
 const TTL_IN_HOURS = 6
 const TTL_IN_SECONDS = 60 * 60 * TTL_IN_HOURS
@@ -30,7 +36,7 @@ async function storeSingleBatch (items) {
       [DYNAMODB_TABLE]: items
     }
   }
-  return documentClient.batchWrite(params).promise()
+  return documentClient.send(new BatchWriteCommand(params))
 }
 
 const BATCH_SIZE = 25
