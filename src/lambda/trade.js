@@ -76,6 +76,10 @@ async function trade (currentSymbol, quantity, desiredSymbol) {
 
 async function sell (symbol, quantity) {
   console.log('Sell ', symbol, quantity)
+  if (quantity <= 0) {
+    console.log('Warning: Skipping sell for', symbol, '- quantity is', quantity, '(must be greater than 0)')
+    return
+  }
   const res = await binanceRest.newOrder({ symbol: symbol, side: 'SELL', type: 'MARKET', quantity })
   return res
 }
