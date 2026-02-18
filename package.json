@@ -28,5 +28,8 @@
     "eslint-plugin-promise": "^5.1.0",
     "mocha": "^11.7.5",
     "rewire": "^5.0.0"
+  },
+  "overrides": {
+    "tough-cookie": ">=4.1.3"
   }
 }
