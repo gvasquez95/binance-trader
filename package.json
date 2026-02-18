@@ -12,7 +12,8 @@
     "aws-sdk": "^2.993.0",
     "aws-xray-sdk-core": "^3.3.3",
     "binance": "^1.4.0",
-    "trendline": "^0.3.1"
+    "trendline": "^0.3.1",
+    "xml2js": "^0.5.0"
   },
   "devDependencies": {
     "chai": "^4.3.4",
